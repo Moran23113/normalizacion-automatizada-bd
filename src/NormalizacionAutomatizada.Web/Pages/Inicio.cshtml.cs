@@ -1,0 +1,51 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using NormalizacionAutomatizada.Web.Modelos;
+using NormalizacionAutomatizada.Web.Servicios;
+
+namespace NormalizacionAutomatizada.Web.Pages;
+
+public class PaginaInicioModel : PageModel
+{
+    private readonly IValidadorArchivoExcel validadorArchivoExcel;
+    private readonly IAnalizadorPlantillaExcel analizadorPlantillaExcel;
+    private readonly IAlmacenEntradaNormalizacion almacenEntradaNormalizacion;
+
+    public PaginaInicioModel(IValidadorArchivoExcel validadorArchivoExcel, IAnalizadorPlantillaExcel analizadorPlantillaExcel, IAlmacenEntradaNormalizacion almacenEntradaNormalizacion)
+    {
+        this.validadorArchivoExcel = validadorArchivoExcel;
+        this.analizadorPlantillaExcel = analizadorPlantillaExcel;
+        this.almacenEntradaNormalizacion = almacenEntradaNormalizacion;
+    }
+
+    [BindProperty]
+    public IFormFile? ArchivoPlantilla { get; set; }
+
+    public ResultadoValidacionArchivo? ResultadoValidacion { get; private set; }
+
+    public ResultadoAnalisisLibro? ResultadoAnalisis { get; private set; }
+
+    public void OnGet()
+    {
+
+    }
+
+    public void OnPost()
+    {
+        ResultadoValidacion = validadorArchivoExcel.Validar(ArchivoPlantilla);
+
+        if (!ResultadoValidacion.EsValido)
+        {
+            return;
+        }
+
+        using var contenido = ArchivoPlantilla!.OpenReadStream();
+        ResultadoAnalisis = analizadorPlantillaExcel.Analizar(contenido);
+
+        if (ResultadoAnalisis is { EsValido: true, Entrada: not null } analisis)
+        {
+            almacenEntradaNormalizacion.Guardar(analisis.Entrada);
+        }
+    }
+}

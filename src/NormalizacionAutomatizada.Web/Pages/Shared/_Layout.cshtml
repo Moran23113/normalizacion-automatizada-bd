@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Normalizaci&oacute;n Automatizada</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="page-grid" aria-hidden="true"></div>
+    <div class="app-shell">
+        <header class="site-header">
+            <a class="brand" asp-page="/Inicio">
+                <span class="brand-mark">NF/3</span>
+                <span>
+                    <strong>Normalizaci&oacute;n</strong>
+                    <small>Automatizada</small>
+                </span>
+            </a>
+            <p class="header-note">Base de Datos II <span>///</span> Proyecto I</p>
+        </header>
+
+        <main class="site-content" role="main">
+            @RenderBody()
+        </main>
+
+        <footer class="site-footer">
+            <span>Entrada estructurada</span>
+            <span>Dependencias funcionales</span>
+            <span>Formas normales</span>
+        </footer>
+    </div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

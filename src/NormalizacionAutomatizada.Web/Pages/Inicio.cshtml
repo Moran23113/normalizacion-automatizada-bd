@@ -1,0 +1,74 @@
+@page "/"
+@model PaginaInicioModel
+@{
+    ViewData["Title"] = "Normalización automatizada";
+}
+
+<section class="upload-workbench" aria-labelledby="page-title">
+    <div class="intro-column">
+        <p class="eyebrow">Proyecto I / Administraci&oacute;n de Base de Datos II</p>
+        <h1 id="page-title">Toda buena normalizaci&oacute;n empieza con una <em>entidad bien descrita.</em></h1>
+        <p class="intro-copy">Usa la plantilla para declarar atributos, tipos y registros. La aplicaci&oacute;n verificar&aacute; la estructura antes de iniciar el an&aacute;lisis de formas normales.</p>
+
+        <ol class="flow-list" aria-label="Flujo de trabajo">
+            <li><span>01</span> Descarga la plantilla maestra.</li>
+            <li><span>02</span> Completa cada par Tabla_XX y Datos_XX.</li>
+            <li><span>03</span> Carga el archivo para validarlo.</li>
+        </ol>
+    </div>
+
+    <div class="upload-panel">
+        <div class="panel-heading">
+            <p class="panel-kicker">Punto de entrada</p>
+            <h2>Verifica tu plantilla</h2>
+        </div>
+
+        <a class="template-download" href="/plantillas/Plantilla_Maestra_Normalizacion_Simplificada_v2.xlsx" download>
+            <span class="download-mark" aria-hidden="true">XLSX</span>
+            <span>
+                <strong>Descargar plantilla maestra</strong>
+                <small>Pares Tabla_XX, Datos_XX y ejemplos de uso</small>
+            </span>
+            <span class="arrow" aria-hidden="true">&#8595;</span>
+        </a>
+
+        <form class="upload-form" method="post" enctype="multipart/form-data">
+            <label asp-for="ArchivoPlantilla">Archivo de normalizaci&oacute;n</label>
+            <input asp-for="ArchivoPlantilla" accept=".xlsx" />
+            <p class="field-hint">Solo se aceptan libros Excel .xlsx con pares Tabla_XX y Datos_XX.</p>
+            <button class="analysis-button" type="submit">Validar archivo <span aria-hidden="true">&#8594;</span></button>
+        </form>
+
+        @if (Model.ResultadoValidacion is { EsValido: false } error)
+        {
+            <div class="upload-alert upload-alert--error" role="alert">@error.MensajeError</div>
+        }
+        else if (Model.ResultadoAnalisis is { EsValido: false } analisisConErrores)
+        {
+            <div class="upload-alert upload-alert--error" role="alert">
+                <strong>Corrige la plantilla antes de analizarla.</strong>
+                <ul class="analysis-list">
+                    @foreach (var mensajeError in analisisConErrores.Errores)
+                    {
+                        <li>@mensajeError</li>
+                    }
+                </ul>
+            </div>
+        }
+        else if (Model.ResultadoAnalisis is { EsValido: true } analisis)
+        {
+            var totalRegistros = analisis.Tablas.Sum(tabla => tabla.CantidadRegistros);
+
+            <div class="upload-alert upload-alert--success" role="status">
+                <strong>Plantilla v&aacute;lida.</strong> @analisis.Tablas.Count tabla@(analisis.Tablas.Count == 1 ? string.Empty : "s") y @totalRegistros registro@(totalRegistros == 1 ? string.Empty : "s") est&aacute;n listos para el an&aacute;lisis.
+                <p class="session-note">Los datos originales se guardaron temporalmente para el siguiente paso.</p>
+                <ul class="analysis-list">
+                    @foreach (var tabla in analisis.Tablas)
+                    {
+                        <li>Tabla_@tabla.Numero: @tabla.CantidadColumnas columna@(tabla.CantidadColumnas == 1 ? string.Empty : "s") y @tabla.CantidadRegistros registro@(tabla.CantidadRegistros == 1 ? string.Empty : "s").</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</section>

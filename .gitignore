@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+docs/local/
+.playwright-cli/
+.playwright-mcp/
+normalizacion-en-ejecucion.png

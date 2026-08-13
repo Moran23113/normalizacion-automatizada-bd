@@ -1,0 +1,23 @@
+﻿@page
+@model ModeloError
+@{
+    ViewData["Title"] = "Error";
+}
+
+<h1 class="text-danger">Error</h1>
+<h2 class="text-danger">Ocurri&oacute; un error mientras se procesaba la solicitud.</h2>
+
+@if (Model.MostrarIdSolicitud)
+{
+    <p>
+        <strong>Identificador de solicitud:</strong> <code>@Model.IdSolicitud</code>
+    </p>
+}
+
+<h3>Modo de desarrollo</h3>
+<p>
+    El entorno <strong>Development</strong> muestra informaci&oacute;n detallada del error para facilitar la depuraci&oacute;n local.
+</p>
+<p>
+    No habilites <strong>Development</strong> en una aplicaci&oacute;n publicada, porque puede mostrar informaci&oacute;n sensible.
+</p>
