@@ -1,42 +1,41 @@
 @page "/"
 @model PaginaInicioModel
 @{
-    ViewData["Title"] = "Normalización automatizada";
+    ViewData["Title"] = "Normalizacion automatizada";
 }
 
-<section class="upload-workbench" aria-labelledby="page-title">
-    <div class="intro-column">
-        <p class="eyebrow">Proyecto I / Administraci&oacute;n de Base de Datos II</p>
-        <h1 id="page-title">Toda buena normalizaci&oacute;n empieza con una <em>entidad bien descrita.</em></h1>
-        <p class="intro-copy">Usa la plantilla para declarar atributos, tipos y registros. La aplicaci&oacute;n verificar&aacute; la estructura antes de iniciar el an&aacute;lisis de formas normales.</p>
+<section class="workspace" aria-labelledby="page-title">
+    <header class="page-heading">
+        <p class="section-label">Proyecto I / Administraci&oacute;n de Base de Datos II</p>
+        <h1 id="page-title">Carga de plantilla</h1>
+        <p>Importa un libro Excel con pares <code>Tabla_XX</code> y <code>Datos_XX</code>. Al validarlo, la aplicaci&oacute;n muestra los datos que quedan disponibles para el an&aacute;lisis de normalizaci&oacute;n.</p>
+    </header>
 
-        <ol class="flow-list" aria-label="Flujo de trabajo">
-            <li><span>01</span> Descarga la plantilla maestra.</li>
-            <li><span>02</span> Completa cada par Tabla_XX y Datos_XX.</li>
-            <li><span>03</span> Carga el archivo para validarlo.</li>
-        </ol>
-    </div>
-
-    <div class="upload-panel">
-        <div class="panel-heading">
-            <p class="panel-kicker">Punto de entrada</p>
-            <h2>Verifica tu plantilla</h2>
+    <section class="upload-card" aria-labelledby="upload-title">
+        <div class="card-heading">
+            <div>
+                <p class="section-label">1. Importar libro</p>
+                <h2 id="upload-title">Archivo Excel</h2>
+            </div>
+            <p>Descarga una plantilla, compl&eacute;tala y c&aacute;rgala para comprobar su estructura.</p>
         </div>
 
-        <a class="template-download" href="/plantillas/Plantilla_Maestra_Normalizacion_Simplificada_v2.xlsx" download>
-            <span class="download-mark" aria-hidden="true">XLSX</span>
-            <span>
-                <strong>Descargar plantilla maestra</strong>
-                <small>Pares Tabla_XX, Datos_XX y ejemplos de uso</small>
-            </span>
-            <span class="arrow" aria-hidden="true">&#8595;</span>
-        </a>
+        <div class="template-links" aria-label="Plantillas disponibles">
+            <a class="template-link" href="/plantillas/Plantilla_Maestra_Normalizacion_Simplificada_v2.xlsx" download>
+                <strong>Plantilla maestra</strong>
+                <span>Base vac&iacute;a para iniciar su propio caso.</span>
+            </a>
+            <a class="template-link" href="/plantillas/Plantilla_Prueba_Depuracion_3_Tablas.xlsx" download>
+                <strong>Ejemplo para depuraci&oacute;n</strong>
+                <span>Tres tablas completas con registros de prueba.</span>
+            </a>
+        </div>
 
         <form class="upload-form" method="post" enctype="multipart/form-data">
-            <label asp-for="ArchivoPlantilla">Archivo de normalizaci&oacute;n</label>
+            <label asp-for="ArchivoPlantilla">Seleccione el archivo de normalizaci&oacute;n</label>
             <input asp-for="ArchivoPlantilla" accept=".xlsx" />
-            <p class="field-hint">Solo se aceptan libros Excel .xlsx con pares Tabla_XX y Datos_XX.</p>
-            <button class="analysis-button" type="submit">Validar archivo <span aria-hidden="true">&#8594;</span></button>
+            <p class="field-hint">Solo se aceptan archivos <code>.xlsx</code> que contengan pares <code>Tabla_XX</code> y <code>Datos_XX</code>.</p>
+            <button class="analysis-button" type="submit">Validar y mostrar datos</button>
         </form>
 
         @if (Model.ResultadoValidacion is { EsValido: false } error)
@@ -60,15 +59,84 @@
             var totalRegistros = analisis.Tablas.Sum(tabla => tabla.CantidadRegistros);
 
             <div class="upload-alert upload-alert--success" role="status">
-                <strong>Plantilla v&aacute;lida.</strong> @analisis.Tablas.Count tabla@(analisis.Tablas.Count == 1 ? string.Empty : "s") y @totalRegistros registro@(totalRegistros == 1 ? string.Empty : "s") est&aacute;n listos para el an&aacute;lisis.
-                <p class="session-note">Los datos originales se guardaron temporalmente para el siguiente paso.</p>
-                <ul class="analysis-list">
-                    @foreach (var tabla in analisis.Tablas)
-                    {
-                        <li>Tabla_@tabla.Numero: @tabla.CantidadColumnas columna@(tabla.CantidadColumnas == 1 ? string.Empty : "s") y @tabla.CantidadRegistros registro@(tabla.CantidadRegistros == 1 ? string.Empty : "s").</li>
-                    }
-                </ul>
+                <strong>Plantilla v&aacute;lida.</strong> Se importaron @analisis.Tablas.Count tabla@(analisis.Tablas.Count == 1 ? string.Empty : "s") y @totalRegistros registro@(totalRegistros == 1 ? string.Empty : "s").
+                <p>Los datos originales se guardaron temporalmente para el siguiente paso.</p>
             </div>
         }
-    </div>
+    </section>
+
+    @if (Model.EntradaCargada is { } entrada)
+    {
+        var totalRegistros = entrada.Tablas.Sum(tabla => tabla.Registros.Count);
+
+        <section class="preview-panel" aria-labelledby="preview-title">
+            <header class="preview-heading">
+                <div>
+                    <p class="section-label">2. Resultado de la carga</p>
+                    <h2 id="preview-title">Vista previa de datos importados</h2>
+                    <p>Esta vista corresponde a la entrada guardada en sesi&oacute;n y disponible mediante <code>IAlmacenEntradaNormalizacion.Obtener()</code>.</p>
+                </div>
+                <p class="preview-count">@entrada.Tablas.Count tabla@(entrada.Tablas.Count == 1 ? string.Empty : "s")<br />@totalRegistros registro@(totalRegistros == 1 ? string.Empty : "s")</p>
+            </header>
+
+            @foreach (var tabla in entrada.Tablas)
+            {
+                <article class="table-preview">
+                    <header class="table-preview-heading">
+                        <div>
+                            <h3>Tabla_@tabla.Numero</h3>
+                            <p>@tabla.Columnas.Count columnas y @tabla.Registros.Count registro@(tabla.Registros.Count == 1 ? string.Empty : "s") importado@(tabla.Registros.Count == 1 ? string.Empty : "s").</p>
+                        </div>
+                    </header>
+
+                    <ul class="column-list" aria-label="Estructura de Tabla_@tabla.Numero">
+                        @foreach (var columna in tabla.Columnas)
+                        {
+                            <li>
+                                <strong>@columna.Nombre</strong>
+                                <span>@columna.TipoDato</span>
+                                @if (columna.EsClavePrimaria)
+                                {
+                                    <small>PK</small>
+                                }
+                                @if (columna.EsClaveForanea)
+                                {
+                                    <small>FK</small>
+                                }
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    @foreach (var columna in tabla.Columnas)
+                                    {
+                                        <th scope="col">@columna.Nombre</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var registro in tabla.Registros.Take(5))
+                                {
+                                    <tr>
+                                        @foreach (var columna in tabla.Columnas)
+                                        {
+                                            <td>@(registro.Valores.TryGetValue(columna.Nombre, out var valor) ? valor ?? "Sin dato" : "Sin dato")</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (tabla.Registros.Count > 5)
+                    {
+                        <p class="preview-note">La vista previa muestra los primeros 5 registros de los @tabla.Registros.Count importados.</p>
+                    }
+                </article>
+            }
+        </section>
+    }
 </section>

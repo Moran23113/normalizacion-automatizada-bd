@@ -48,6 +48,24 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
     }
 
     [Fact]
+    public async Task ObtenerPlantillaDePrueba_DevuelveUnLibroConTresTablasParaDepuracion()
+    {
+        var respuesta = await cliente.GetAsync("/plantillas/Plantilla_Prueba_Depuracion_3_Tablas.xlsx");
+        var contenido = await respuesta.Content.ReadAsByteArrayAsync();
+        using var flujo = new MemoryStream(contenido);
+        var analizador = new AnalizadorPlantillaExcel();
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+
+        var resultado = analizador.Analizar(flujo);
+
+        Assert.True(resultado.EsValido, string.Join(" ", resultado.Errores));
+        Assert.Equal(3, resultado.Tablas.Count);
+        Assert.All(resultado.Tablas, tabla => Assert.True(tabla.CantidadRegistros >= 3));
+        Assert.Equal("88.50", resultado.Entrada!.Tablas[2].Registros[0].Valores["nota_final"]);
+    }
+
+    [Fact]
     public async Task EnviarInicio_SinArchivo_MuestraElMensajeCorrespondiente()
     {
         var respuesta = await EnviarArchivoAsync();
@@ -85,8 +103,28 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         Assert.Contains("Plantilla v&aacute;lida.", html);
-        Assert.Contains("Tabla_01: 2 columnas y 1 registro.", html);
+        Assert.Contains("Se importaron 1 tabla y 1 registro.", html);
+        Assert.Contains("Tabla_01", html);
+        Assert.Contains("2 columnas y 1 registro importado.", html);
         Assert.Contains("Los datos originales se guardaron temporalmente para el siguiente paso.", html);
+        Assert.Contains("Vista previa de datos importados", html);
+        Assert.Contains("id_estudiante", html);
+        Assert.Contains("Ana", html);
+        Assert.Contains("IAlmacenEntradaNormalizacion.Obtener()", html);
+    }
+
+    [Fact]
+    public async Task ObtenerInicio_DespuesDeUnaCargaValida_MuestraLosDatosGuardadosEnSesion()
+    {
+        await EnviarArchivoAsync("datos.xlsx", CrearLibroCompatible());
+
+        var respuesta = await cliente.GetAsync("/");
+        var html = await respuesta.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Contains("Vista previa de datos importados", html);
+        Assert.Contains("Ana", html);
+        Assert.Contains("IAlmacenEntradaNormalizacion.Obtener()", html);
     }
 
     private async Task<HttpResponseMessage> EnviarArchivoAsync(string? nombreArchivo = null, byte[]? contenidoArchivo = null)

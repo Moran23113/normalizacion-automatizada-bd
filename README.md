@@ -10,12 +10,16 @@ dotnet run --project .\src\NormalizacionAutomatizada.Web\NormalizacionAutomatiza
 
 Abre `http://127.0.0.1:5000` y descarga la plantilla maestra desde la pagina principal.
 
+La pagina tambien incluye `Plantilla_Prueba_Depuracion_3_Tablas.xlsx`, un libro valido con tres pares de hojas y 11 registros para probar la importacion. Despues de una carga correcta se muestra una vista previa de la estructura, las claves marcadas y los primeros cinco registros de cada tabla.
+
 ## Flujo de carga
 
 1. `PaginaInicioModel.OnPost` recibe el archivo en `ArchivoPlantilla`.
 2. `ValidadorArchivoExcel.Validar` verifica que sea un archivo `.xlsx` con contenido.
 3. `AnalizadorPlantillaExcel.Analizar` valida los pares `Tabla_XX` y `Datos_XX`, y convierte las filas de Excel a objetos del proyecto.
 4. `AlmacenEntradaNormalizacionEnSesion.Guardar` conserva la entrada valida para el siguiente paso.
+
+La misma pantalla recupera la entrada con `IAlmacenEntradaNormalizacion.Obtener()` para que la vista previa permanezca disponible mientras la sesion del navegador siga activa.
 
 La estructura disponible despues de una carga correcta es:
 

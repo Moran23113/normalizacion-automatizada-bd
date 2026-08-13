@@ -26,13 +26,16 @@ public class PaginaInicioModel : PageModel
 
     public ResultadoAnalisisLibro? ResultadoAnalisis { get; private set; }
 
+    public EntradaNormalizacion? EntradaCargada { get; private set; }
+
     public void OnGet()
     {
-
+        EntradaCargada = almacenEntradaNormalizacion.Obtener();
     }
 
     public void OnPost()
     {
+        EntradaCargada = almacenEntradaNormalizacion.Obtener();
         ResultadoValidacion = validadorArchivoExcel.Validar(ArchivoPlantilla);
 
         if (!ResultadoValidacion.EsValido)
@@ -46,6 +49,7 @@ public class PaginaInicioModel : PageModel
         if (ResultadoAnalisis is { EsValido: true, Entrada: not null } analisis)
         {
             almacenEntradaNormalizacion.Guardar(analisis.Entrada);
+            EntradaCargada = analisis.Entrada;
         }
     }
 }

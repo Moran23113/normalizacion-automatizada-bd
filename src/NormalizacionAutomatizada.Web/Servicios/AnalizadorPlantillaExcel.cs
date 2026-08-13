@@ -187,7 +187,7 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
         foreach (var fila in Enumerable.Range(2, Math.Max(0, ultimaFila - 1)))
         {
             var valores = columnas
-                .Select((columna, indice) => (columna.Nombre, Valor: hoja.Cell(fila, indice + 1).GetText()))
+                .Select((columna, indice) => (columna.Nombre, Valor: hoja.Cell(fila, indice + 1).GetFormattedString()))
                 .ToDictionary(elemento => elemento.Nombre, elemento => string.IsNullOrWhiteSpace(elemento.Valor) ? null : elemento.Valor, StringComparer.Ordinal);
 
             if (valores.Values.All(valor => valor is null))
