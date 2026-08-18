@@ -12,7 +12,7 @@ public sealed class GeneradorSqlNormalizacion
         foreach (var tabla in tablas)
         {
             sql.AppendLine($"CREATE TABLE [{tabla.Nombre}] (");
-            var definiciones = tabla.Columnas.Select(columna => $"    [{columna.Nombre}] {columna.TipoDato} NULL").ToList();
+            var definiciones = tabla.Columnas.Select(columna => $"    [{columna.Nombre}] {columna.TipoDato} {(tabla.ClavePrimaria.Contains(columna.Nombre, StringComparer.Ordinal) ? "NOT NULL" : "NULL")}").ToList();
 
             if (tabla.ClavePrimaria.Count > 0)
             {

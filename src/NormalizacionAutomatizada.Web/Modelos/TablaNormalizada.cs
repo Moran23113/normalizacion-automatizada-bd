@@ -15,4 +15,17 @@ public sealed record ResultadoTablaNormalizada(
     IReadOnlyList<TablaNormalizada> TablasPrimeraFormaNormal,
     IReadOnlyList<TablaNormalizada> TablasSegundaFormaNormal,
     IReadOnlyList<TablaNormalizada> TablasTerceraFormaNormal,
-    IReadOnlyList<string> Advertencias);
+    IReadOnlyList<string> Advertencias)
+{
+    public EvaluacionCumplimientoNormalizacion Evaluacion { get; init; } = new([], [], []);
+}
+
+public sealed record EstadoCumplimientoNormalizacion(string Nombre, string Estado, string Descripcion);
+
+public sealed record EvaluacionCumplimientoNormalizacion(
+    IReadOnlyList<EstadoCumplimientoNormalizacion> FormasNormales,
+    IReadOnlyList<EstadoCumplimientoNormalizacion> Directrices,
+    IReadOnlyList<string> ErroresBloqueantes)
+{
+    public bool PuedeExportarSql => ErroresBloqueantes.Count == 0;
+}

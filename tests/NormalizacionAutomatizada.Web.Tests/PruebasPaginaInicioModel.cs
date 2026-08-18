@@ -1,5 +1,7 @@
 using ClosedXML.Excel;
+using System.Text;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NormalizacionAutomatizada.Web.Modelos;
 using NormalizacionAutomatizada.Web.Pages;
 using NormalizacionAutomatizada.Web.Servicios;
@@ -33,6 +35,29 @@ public class PruebasPaginaInicioModel
         pagina.OnPost();
 
         Assert.Null(almacen.Entrada);
+    }
+
+    [Fact]
+    public void OnGetSql_CuandoExistenNulosFrecuentes_ExportaLaRelacionOpcional()
+    {
+        var almacen = new AlmacenEntradaRegistro();
+        almacen.Guardar(new EntradaNormalizacion(
+        [
+            new("01", [new("id_estudiante", "INT", true, false), new("telefono_secundario", "VARCHAR(30)", false, false)],
+            [
+                new(new Dictionary<string, string?> { ["id_estudiante"] = "1", ["telefono_secundario"] = null }),
+                new(new Dictionary<string, string?> { ["id_estudiante"] = "2", ["telefono_secundario"] = null }),
+                new(new Dictionary<string, string?> { ["id_estudiante"] = "3", ["telefono_secundario"] = "9999-0001" })
+            ])
+        ]));
+        var pagina = CrearPagina(almacen);
+
+        var resultado = Assert.IsType<FileContentResult>(pagina.OnGetSql());
+        var sql = Encoding.UTF8.GetString(resultado.FileContents);
+
+        Assert.Contains("CREATE TABLE [Tabla_01_01]", sql);
+        Assert.Contains("CREATE TABLE [Tabla_01_02]", sql);
+        Assert.Contains("FOREIGN KEY ([id_estudiante]) REFERENCES [Tabla_01_01] ([id_estudiante])", sql);
     }
 
     private static PaginaInicioModel CrearPagina(IAlmacenEntradaNormalizacion almacen)

@@ -17,6 +17,7 @@ public class PruebasGeneradorSqlNormalizacion
         var sql = new GeneradorSqlNormalizacion().Generar(tablas);
 
         Assert.Contains("CREATE TABLE [Tabla_01_01]", sql);
+        Assert.Contains("[id_estudiante] INT NOT NULL", sql);
         Assert.Contains("CONSTRAINT [PK_Tabla_01_01] PRIMARY KEY ([id_estudiante])", sql);
         Assert.Contains("CONSTRAINT [FK_Tabla_01_01_Tabla_01_02_id_carrera] FOREIGN KEY ([id_carrera]) REFERENCES [Tabla_01_02] ([id_carrera])", sql);
     }

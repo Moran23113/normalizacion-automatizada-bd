@@ -14,6 +14,7 @@ public class PaginaInicioModel : PageModel
     private readonly IAlmacenEntradaNormalizacion almacenEntradaNormalizacion;
     private readonly NormalizadorTerceraFormaNormal normalizadorTerceraFormaNormal = new();
     private readonly CompletadorReferenciasForaneas completadorReferenciasForaneas = new();
+    private readonly EvaluadorCumplimientoNormalizacion evaluadorCumplimientoNormalizacion = new();
     private readonly GeneradorSqlNormalizacion generadorSqlNormalizacion = new();
 
     public PaginaInicioModel(IValidadorArchivoExcel validadorArchivoExcel, IAnalizadorPlantillaExcel analizadorPlantillaExcel, IAlmacenEntradaNormalizacion almacenEntradaNormalizacion)
@@ -33,6 +34,8 @@ public class PaginaInicioModel : PageModel
     public EntradaNormalizacion? EntradaCargada { get; private set; }
 
     public IReadOnlyList<ResultadoTablaNormalizada> ResultadosNormalizacion { get; private set; } = [];
+
+    public bool PuedeExportarSql => ResultadosNormalizacion.Count > 0 && ResultadosNormalizacion.All(resultado => resultado.Evaluacion.PuedeExportarSql);
 
     public void OnGet()
     {
@@ -69,7 +72,13 @@ public class PaginaInicioModel : PageModel
             return RedirectToPage();
         }
 
-        var tablas = Normalizar(entrada).SelectMany(resultado => resultado.TablasTerceraFormaNormal).ToArray();
+        var resultados = Normalizar(entrada);
+        if (resultados.Any(resultado => !resultado.Evaluacion.PuedeExportarSql))
+        {
+            return BadRequest("No se puede exportar SQL mientras existan criterios de normalizacion pendientes.");
+        }
+
+        var tablas = resultados.SelectMany(resultado => resultado.TablasTerceraFormaNormal).ToArray();
         var sql = generadorSqlNormalizacion.Generar(tablas);
         return File(Encoding.UTF8.GetBytes(sql), "text/sql", "tablas-normalizadas.sql");
     }
@@ -81,7 +90,8 @@ public class PaginaInicioModel : PageModel
             return [];
         }
 
-        var resultados = entrada.Tablas.Select(normalizadorTerceraFormaNormal.Normalizar).ToArray();
-        return completadorReferenciasForaneas.Completar(entrada, resultados);
+        var resultados = entrada.Tablas.Select(tabla => normalizadorTerceraFormaNormal.Normalizar(tabla, entrada.Tablas)).ToArray();
+        var resultadosConReferencias = completadorReferenciasForaneas.Completar(entrada, resultados);
+        return evaluadorCumplimientoNormalizacion.Evaluar(entrada, resultadosConReferencias);
     }
 }

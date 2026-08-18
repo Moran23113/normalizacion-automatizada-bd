@@ -19,6 +19,7 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         Assert.Contains("href=\"/plantillas/Plantilla_Maestra_Normalizacion_Simplificada_v2.xlsx\"", html);
+        Assert.Contains("href=\"/plantillas/Plantilla_Prueba_Criterios_Completos.xlsx\"", html);
         Assert.Contains("enctype=\"multipart/form-data\"", html);
         Assert.Contains("name=\"ArchivoPlantilla\"", html);
     }
@@ -63,6 +64,20 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
         Assert.Equal(3, resultado.Tablas.Count);
         Assert.All(resultado.Tablas, tabla => Assert.True(tabla.CantidadRegistros >= 3));
         Assert.Equal("88.50", resultado.Entrada!.Tablas[2].Registros[0].Valores["nota_final"]);
+    }
+
+    [Fact]
+    public async Task ObtenerPlantillaDeCriterios_DevuelveUnLibroValidoConDosTablasRelacionadas()
+    {
+        var respuesta = await cliente.GetAsync("/plantillas/Plantilla_Prueba_Criterios_Completos.xlsx");
+        var contenido = await respuesta.Content.ReadAsByteArrayAsync();
+        using var flujo = new MemoryStream(contenido);
+        var resultado = new AnalizadorPlantillaExcel().Analizar(flujo);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.True(resultado.EsValido, string.Join(" ", resultado.Errores));
+        Assert.Equal(2, resultado.Tablas.Count);
+        Assert.Equal("9999-0001; 9999-0002", resultado.Entrada!.Tablas[0].Registros[0].Valores["telefonos"]);
     }
 
     [Fact]
@@ -111,6 +126,9 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
         Assert.Contains("id_estudiante", html);
         Assert.Contains("Ana", html);
         Assert.Contains("IAlmacenEntradaNormalizacion.Obtener()", html);
+        Assert.Contains("Cumplimiento de normalizacion", html);
+        Assert.Contains("1FN", html);
+        Assert.Contains("Directriz 4", html);
     }
 
     [Fact]

@@ -64,10 +64,12 @@ public sealed class DetectorDependenciasFuncionales
                 Dependiente: ObtenerValor(registro, nombreDependiente)))
             .ToArray();
 
+        var gruposPorDeterminante = valores.GroupBy(valor => string.Join('\u001F', valor.Determinante), StringComparer.Ordinal).ToArray();
+
         return valores.Length > 0
             && valores.All(valor => valor.Determinante.All(valorDeterminante => valorDeterminante is not null) && valor.Dependiente is not null)
-            && valores.GroupBy(valor => string.Join('\u001F', valor.Determinante), StringComparer.Ordinal)
-                .All(grupo => grupo.Select(valor => valor.Dependiente).Distinct(StringComparer.Ordinal).Count() == 1);
+            && gruposPorDeterminante.Any(grupo => grupo.Count() > 1)
+            && gruposPorDeterminante.All(grupo => grupo.Select(valor => valor.Dependiente).Distinct(StringComparer.Ordinal).Count() == 1);
     }
 
     private static string? ObtenerValor(RegistroOriginal registro, string nombreColumna)

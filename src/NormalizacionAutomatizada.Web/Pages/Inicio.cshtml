@@ -29,6 +29,10 @@
                 <strong>Ejemplo para depuraci&oacute;n</strong>
                 <span>Tres tablas completas con registros de prueba.</span>
             </a>
+            <a class="template-link" href="/plantillas/Plantilla_Prueba_Criterios_Completos.xlsx" download>
+                <strong>Caso completo de prueba</strong>
+                <span>Ejercita 1FN, nulos frecuentes, 3FN y relaciones PK/FK.</span>
+            </a>
         </div>
 
         <form class="upload-form" method="post" enctype="multipart/form-data">
@@ -149,7 +153,14 @@
                     <h2 id="normalization-title">Tablas en tercera forma normal</h2>
                     <p>Las claves y dependencias se infieren de los registros cargados. Revise las advertencias antes de ejecutar el SQL.</p>
                 </div>
-                <a class="analysis-button" asp-page-handler="Sql">Descargar SQL</a>
+                @if (Model.PuedeExportarSql)
+                {
+                    <a class="analysis-button" asp-page-handler="Sql">Descargar SQL</a>
+                }
+                else
+                {
+                    <p class="preview-note">La descarga SQL se habilita cuando todas las tablas cumplan los criterios evaluables.</p>
+                }
             </header>
 
             @foreach (var resultado in Model.ResultadosNormalizacion)
@@ -160,6 +171,34 @@
                         <p>Claves candidatas: @(resultado.ClavesCandidatas.Count == 0 ? "sin evidencia suficiente" : string.Join(" | ", resultado.ClavesCandidatas.Select(clave => string.Join(" + ", clave.Columnas)))).</p>
                         <p>Dependencias observadas: @resultado.DependenciasObservadas.Count.</p>
                     </header>
+
+                    <div class="table-preview-heading">
+                        <h3>Cumplimiento de normalizacion</h3>
+                        <p>El resultado se evalua con la evidencia disponible en la plantilla cargada.</p>
+                    </div>
+                    <ul class="column-list" aria-label="Formas normales de Tabla_@resultado.Numero">
+                        @foreach (var formaNormal in resultado.Evaluacion.FormasNormales)
+                        {
+                            <li><strong>@formaNormal.Nombre</strong><span>@formaNormal.Estado</span></li>
+                        }
+                    </ul>
+                    <ul class="column-list" aria-label="Directrices de Tabla_@resultado.Numero">
+                        @foreach (var directriz in resultado.Evaluacion.Directrices)
+                        {
+                            <li><strong>@directriz.Nombre</strong><span>@directriz.Estado</span></li>
+                        }
+                    </ul>
+
+                    @if (resultado.Evaluacion.ErroresBloqueantes.Count > 0)
+                    {
+                        <div class="upload-alert upload-alert--error">
+                            <strong>Corrija estos criterios antes de exportar SQL.</strong>
+                            @foreach (var errorBloqueante in resultado.Evaluacion.ErroresBloqueantes)
+                            {
+                                <p>@errorBloqueante</p>
+                            }
+                        </div>
+                    }
 
                     @foreach (var tabla in resultado.TablasTerceraFormaNormal)
                     {
