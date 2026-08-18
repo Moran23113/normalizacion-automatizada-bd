@@ -13,6 +13,7 @@ public class PaginaInicioModel : PageModel
     private readonly IAnalizadorPlantillaExcel analizadorPlantillaExcel;
     private readonly IAlmacenEntradaNormalizacion almacenEntradaNormalizacion;
     private readonly NormalizadorTerceraFormaNormal normalizadorTerceraFormaNormal = new();
+    private readonly CompletadorReferenciasForaneas completadorReferenciasForaneas = new();
     private readonly GeneradorSqlNormalizacion generadorSqlNormalizacion = new();
 
     public PaginaInicioModel(IValidadorArchivoExcel validadorArchivoExcel, IAnalizadorPlantillaExcel analizadorPlantillaExcel, IAlmacenEntradaNormalizacion almacenEntradaNormalizacion)
@@ -75,6 +76,12 @@ public class PaginaInicioModel : PageModel
 
     private IReadOnlyList<ResultadoTablaNormalizada> Normalizar(EntradaNormalizacion? entrada)
     {
-        return entrada?.Tablas.Select(normalizadorTerceraFormaNormal.Normalizar).ToArray() ?? [];
+        if (entrada is null)
+        {
+            return [];
+        }
+
+        var resultados = entrada.Tablas.Select(normalizadorTerceraFormaNormal.Normalizar).ToArray();
+        return completadorReferenciasForaneas.Completar(entrada, resultados);
     }
 }

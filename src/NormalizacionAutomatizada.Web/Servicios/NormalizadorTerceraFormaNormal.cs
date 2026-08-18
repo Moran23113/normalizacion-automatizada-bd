@@ -23,7 +23,8 @@ public sealed class NormalizadorTerceraFormaNormal
 
         if (tabla.Columnas.Any(columna => columna.EsClaveForanea))
         {
-            return new(tabla.Numero, clavesCandidatas, dependencias, [tablaBase], [tablaBase], [tablaBase], advertencias);
+            var tablasConRelacionesDeclaradas = SepararRelacionesDeclaradas(tabla, clavePrincipal);
+            return new(tabla.Numero, clavesCandidatas, dependencias, [tablaBase], [tablaBase], tablasConRelacionesDeclaradas, advertencias);
         }
 
         var columnasBase = tabla.Columnas.ToList();
@@ -74,6 +75,47 @@ public sealed class NormalizadorTerceraFormaNormal
     private static TablaNormalizada CrearTabla(string nombre, IReadOnlyList<ColumnaNormalizacion> columnas, IReadOnlyList<string> clavePrimaria)
     {
         return new(nombre, columnas, clavePrimaria, []);
+    }
+
+    private static IReadOnlyList<TablaNormalizada> SepararRelacionesDeclaradas(TablaNormalizacion tabla, IReadOnlyList<string> clavePrincipal)
+    {
+        var columnasBase = tabla.Columnas.ToList();
+        var tablasRelacionadas = new List<TablaNormalizada>();
+
+        foreach (var claveForanea in tabla.Columnas.Where(columna => columna.EsClaveForanea))
+        {
+            var contexto = ObtenerContexto(claveForanea.Nombre);
+            if (contexto is null)
+            {
+                continue;
+            }
+
+            var dependientes = tabla.Columnas
+                .Where(columna => !columna.EsClavePrimaria
+                    && !columna.EsClaveForanea
+                    && columna.Nombre.EndsWith($"_{contexto}", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            if (dependientes.Length == 0)
+            {
+                continue;
+            }
+
+            var clavePrincipalRelacionada = claveForanea with { EsClavePrimaria = true, EsClaveForanea = false };
+            var columnasRelacionadas = new[] { clavePrincipalRelacionada }.Concat(dependientes).ToArray();
+            tablasRelacionadas.Add(CrearTabla($"Tabla_{tabla.Numero}_{tablasRelacionadas.Count + 2:00}", columnasRelacionadas, [claveForanea.Nombre]));
+            columnasBase.RemoveAll(columna => dependientes.Contains(columna));
+        }
+
+        tablasRelacionadas.Insert(0, CrearTabla($"Tabla_{tabla.Numero}_01", columnasBase, clavePrincipal));
+        return AgregarReferenciasForaneas(tablasRelacionadas);
+    }
+
+    private static string? ObtenerContexto(string nombre)
+    {
+        var prefijo = new[] { "id_", "codigo_", "cod_" }
+            .FirstOrDefault(valor => nombre.StartsWith(valor, StringComparison.OrdinalIgnoreCase));
+        return prefijo is null || nombre.Length == prefijo.Length ? null : nombre[prefijo.Length..];
     }
 
     private static IReadOnlyList<TablaNormalizada> AgregarReferenciasForaneas(IReadOnlyList<TablaNormalizada> tablas)
