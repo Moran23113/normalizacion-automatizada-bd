@@ -139,4 +139,57 @@
             }
         </section>
     }
+
+    @if (Model.ResultadosNormalizacion.Count > 0)
+    {
+        <section class="preview-panel" aria-labelledby="normalization-title">
+            <header class="preview-heading">
+                <div>
+                    <p class="section-label">3. Propuesta automatica</p>
+                    <h2 id="normalization-title">Tablas en tercera forma normal</h2>
+                    <p>Las claves y dependencias se infieren de los registros cargados. Revise las advertencias antes de ejecutar el SQL.</p>
+                </div>
+                <a class="analysis-button" asp-page-handler="Sql">Descargar SQL</a>
+            </header>
+
+            @foreach (var resultado in Model.ResultadosNormalizacion)
+            {
+                <article class="table-preview">
+                    <header class="table-preview-heading">
+                        <h3>Origen: Tabla_@resultado.Numero</h3>
+                        <p>Claves candidatas: @(resultado.ClavesCandidatas.Count == 0 ? "sin evidencia suficiente" : string.Join(" | ", resultado.ClavesCandidatas.Select(clave => string.Join(" + ", clave.Columnas)))).</p>
+                        <p>Dependencias observadas: @resultado.DependenciasObservadas.Count.</p>
+                    </header>
+
+                    @foreach (var tabla in resultado.TablasTerceraFormaNormal)
+                    {
+                        <div class="table-preview-heading">
+                            <h3>@tabla.Nombre</h3>
+                            <p>PK: @(tabla.ClavePrimaria.Count == 0 ? "sin definir" : string.Join(" + ", tabla.ClavePrimaria)).</p>
+                        </div>
+                        <ul class="column-list">
+                            @foreach (var columna in tabla.Columnas)
+                            {
+                                <li><strong>@columna.Nombre</strong><span>@columna.TipoDato</span></li>
+                            }
+                        </ul>
+                        @if (tabla.ClavesForaneas.Count > 0)
+                        {
+                            <p class="preview-note">FK: @string.Join("; ", tabla.ClavesForaneas.Select(referencia => $"{string.Join(" + ", referencia.Columnas)} -> {referencia.TablaDestino}"))</p>
+                        }
+                    }
+
+                    @if (resultado.Advertencias.Count > 0)
+                    {
+                        <div class="upload-alert upload-alert--error">
+                            @foreach (var advertencia in resultado.Advertencias)
+                            {
+                                <p>@advertencia</p>
+                            }
+                        </div>
+                    }
+                </article>
+            }
+        </section>
+    }
 </section>

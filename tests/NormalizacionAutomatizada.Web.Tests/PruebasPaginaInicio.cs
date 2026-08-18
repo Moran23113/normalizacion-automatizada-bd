@@ -127,6 +127,20 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
         Assert.Contains("IAlmacenEntradaNormalizacion.Obtener()", html);
     }
 
+    [Fact]
+    public async Task ObtenerSql_DespuesDeUnaCargaValida_DevuelveElScriptDeTablasNormalizadas()
+    {
+        await EnviarArchivoAsync("datos.xlsx", CrearLibroCompatible());
+
+        var respuesta = await cliente.GetAsync("/?handler=Sql");
+        var sql = await respuesta.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal("text/sql", respuesta.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("CREATE TABLE [Tabla_01_01]", sql);
+        Assert.Contains("CONSTRAINT [PK_Tabla_01_01] PRIMARY KEY ([id_estudiante])", sql);
+    }
+
     private async Task<HttpResponseMessage> EnviarArchivoAsync(string? nombreArchivo = null, byte[]? contenidoArchivo = null)
     {
         var inicio = await cliente.GetStringAsync("/");
