@@ -79,8 +79,16 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
                 continue;
             }
 
+            var tablaImportada = new TablaNormalizacion(numero, columnasEstructura, registros);
+            var erroresClavePrimaria = new ValidadorClavesDeclaradas().Validar(tablaImportada);
+            if (erroresClavePrimaria.Count > 0)
+            {
+                errores.AddRange(erroresClavePrimaria);
+                continue;
+            }
+
             resumenes.Add(new(numero, columnasEstructura.Count, registros.Count));
-            tablasImportadas.Add(new(numero, columnasEstructura, registros));
+            tablasImportadas.Add(tablaImportada);
         }
 
         return new(resumenes, errores)

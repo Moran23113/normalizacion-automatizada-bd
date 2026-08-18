@@ -257,6 +257,25 @@ public class PruebasAnalizadorPlantillaExcel
     }
 
     [Fact]
+    public void Analyze_WhenDeclaredPrimaryKeyContainsDuplicatedValues_ReportsTheInvalidKey()
+    {
+        using var workbook = CreateWorkbook(
+            Sheet("Tabla_01", ["tabla", "columna", "tipo", "Primary Key", "Foreign Key"],
+                ["Tabla", "id_estudiante", "INT", "Si", "No"],
+                ["Tabla", "nombre_estudiante", "VARCHAR(100)", "No", "No"]),
+            Sheet("Datos_01", ["id_estudiante", "nombre_estudiante"],
+                ["1", "Ana"],
+                ["1", "Luis"]));
+        var analyzer = new AnalizadorPlantillaExcel();
+
+        var result = analyzer.Analizar(workbook);
+
+        Assert.False(result.EsValido);
+        Assert.Null(result.Entrada);
+        Assert.Contains("La clave primaria de 'Tabla_01' contiene un valor duplicado: id_estudiante = '1'.", result.Errores);
+    }
+
+    [Fact]
     public void Analyze_WhenStructureContainsBlankRows_IgnoresThem()
     {
         using var workbook = CreateWorkbook(
