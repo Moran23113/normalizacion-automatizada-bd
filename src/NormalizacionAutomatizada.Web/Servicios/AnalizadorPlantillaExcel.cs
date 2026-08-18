@@ -196,7 +196,7 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
         {
             var valores = columnas
                 .Select((columna, indice) => (columna.Nombre, Valor: hoja.Cell(fila, indice + 1).GetFormattedString()))
-                .ToDictionary(elemento => elemento.Nombre, elemento => string.IsNullOrWhiteSpace(elemento.Valor) ? null : elemento.Valor, StringComparer.Ordinal);
+                .ToDictionary(elemento => elemento.Nombre, elemento => ConvertirValorNulo(elemento.Valor), StringComparer.Ordinal);
 
             if (valores.Values.All(valor => valor is null))
             {
@@ -207,5 +207,13 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
         }
 
         return registros;
+    }
+
+    private static string? ConvertirValorNulo(string valor)
+    {
+        return string.IsNullOrWhiteSpace(valor)
+            || string.Equals(valor.Trim(), "NULL", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : valor;
     }
 }

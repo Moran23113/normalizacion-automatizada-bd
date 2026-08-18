@@ -71,6 +71,29 @@ public class PruebasAnalizadorPlantillaExcel
     }
 
     [Fact]
+    public void Analyze_WhenDataCellsUseWhitespaceOrNullLiteral_ExtractsThemAsNull()
+    {
+        using var workbook = CreateWorkbook(
+            Sheet("Tabla_01", ["tabla", "columna", "tipo", "Primary Key", "Foreign Key"],
+                ["Tabla", "id_estudiante", "INT", "Si", "No"],
+                ["Tabla", "correo_secundario", "VARCHAR(100)", "No", "No"]),
+            Sheet("Datos_01", ["id_estudiante", "correo_secundario"],
+                ["1", "   "],
+                ["2", "NULL"],
+                ["3", "null"],
+                ["4", "  NuLl  "],
+                ["5", "ana@universidad.edu"]));
+        var analyzer = new AnalizadorPlantillaExcel();
+
+        var result = analyzer.Analizar(workbook);
+
+        Assert.True(result.EsValido);
+        var registros = Assert.Single(result.Entrada!.Tablas).Registros;
+        Assert.All(registros.Take(4), registro => Assert.Null(registro.Valores["correo_secundario"]));
+        Assert.Equal("ana@universidad.edu", registros[4].Valores["correo_secundario"]);
+    }
+
+    [Fact]
     public void Analyze_WhenDataSheetIsMissing_ReportsTheIncompletePair()
     {
         using var workbook = CreateWorkbook(
