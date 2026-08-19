@@ -125,7 +125,7 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
         Assert.Contains("Vista previa de datos importados", html);
         Assert.Contains("id_estudiante", html);
         Assert.Contains("Ana", html);
-        Assert.Contains("IAlmacenEntradaNormalizacion.Obtener()", html);
+        Assert.DoesNotContain("IAlmacenEntradaNormalizacion.Obtener()", html);
         Assert.Contains("Cumplimiento de normalizacion", html);
         Assert.Contains("1FN", html);
         Assert.Contains("Directriz 4", html);
@@ -142,7 +142,7 @@ public class PruebasPaginaInicio(WebApplicationFactory<global::Program> fabrica)
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         Assert.Contains("Vista previa de datos importados", html);
         Assert.Contains("Ana", html);
-        Assert.Contains("IAlmacenEntradaNormalizacion.Obtener()", html);
+        Assert.DoesNotContain("IAlmacenEntradaNormalizacion.Obtener()", html);
     }
 
     [Fact]

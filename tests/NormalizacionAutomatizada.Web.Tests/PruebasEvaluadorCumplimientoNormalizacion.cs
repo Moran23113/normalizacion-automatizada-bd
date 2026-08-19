@@ -66,6 +66,8 @@ public class PruebasEvaluadorCumplimientoNormalizacion
 
         var evaluacion = Assert.Single(resultadoEvaluado).Evaluacion;
         Assert.True(evaluacion.PuedeExportarSql);
+        Assert.Contains(evaluacion.Directrices, directriz => directriz.Nombre == "Directriz 1" && directriz.Estado == "Cumple");
+        Assert.Contains(evaluacion.Directrices, directriz => directriz.Nombre == "Directriz 2" && directriz.Estado == "Cumple");
         Assert.Contains(evaluacion.Directrices, directriz => directriz.Nombre == "Directriz 3" && directriz.Estado == "Corregida automaticamente");
     }
 

@@ -21,7 +21,7 @@ public sealed class EvaluadorCumplimientoNormalizacion
         var errores = resultado.Advertencias.ToList();
         var columnasNoAtomicasDetectadas = BuscarColumnasNoAtomicas(tablaOrigen);
         var columnasNulasFrecuentesDetectadas = BuscarColumnasNulasFrecuentes(tablaOrigen);
-        var tablaBase = resultado.TablasTerceraFormaNormal.SingleOrDefault(tabla => tabla.Nombre == $"Tabla_{tablaOrigen.Numero}_01");
+        var tablaBase = resultado.TablasTerceraFormaNormal.SingleOrDefault(tabla => tabla.Nombre == $"{tablaOrigen.NombreBase}_01");
         var columnasNoAtomicas = columnasNoAtomicasDetectadas
             .Where(nombre => tablaBase is null || tablaBase.Columnas.Any(columna => columna.Nombre == nombre))
             .ToList();
@@ -66,7 +66,7 @@ public sealed class EvaluadorCumplimientoNormalizacion
         var terceraFormaNormalCorregida = resultado.TablasTerceraFormaNormal.Count > resultado.TablasSegundaFormaNormal.Count;
         var nulosFrecuentesCorregidos = columnasNulasFrecuentesDetectadas.Count > 0 && columnasNulasFrecuentes.Count == 0;
         var tieneClaveCompuesta = clavesPrimarias.Length > 1;
-        var tieneTransformacion = primeraFormaNormalCorregida || segundaFormaNormalCorregida || terceraFormaNormalCorregida || nulosFrecuentesCorregidos;
+        var tieneSeparacionEstructural = primeraFormaNormalCorregida || segundaFormaNormalCorregida || terceraFormaNormalCorregida;
 
         return new(
             [
@@ -75,8 +75,8 @@ public sealed class EvaluadorCumplimientoNormalizacion
                 new("3FN", terceraFormaNormalCorregida ? "Corregida automaticamente" : "Cumple", terceraFormaNormalCorregida ? "Las dependencias transitivas se separaron en relaciones propias." : "No se detectaron dependencias transitivas pendientes.")
             ],
             [
-                new("Directriz 1", tieneTransformacion ? "Corregida automaticamente" : "Cumple", tieneTransformacion ? "Las entidades o relaciones mezcladas se separaron en tablas diferentes." : "No se detecto mezcla de entidades en los datos analizados."),
-                new("Directriz 2", tieneTransformacion ? "Corregida automaticamente" : "Cumple", tieneTransformacion ? "La separacion reduce redundancia y anomalias de insercion, eliminacion o modificacion." : "No se observaron dependencias que produzcan anomalias."),
+                new("Directriz 1", tieneSeparacionEstructural ? "Corregida automaticamente" : "Cumple", tieneSeparacionEstructural ? "Las entidades o relaciones mezcladas se separaron en tablas diferentes." : "No se detecto mezcla de entidades en los datos analizados."),
+                new("Directriz 2", tieneSeparacionEstructural ? "Corregida automaticamente" : "Cumple", tieneSeparacionEstructural ? "La separacion reduce redundancia y anomalias de insercion, eliminacion o modificacion." : "No se observaron dependencias que produzcan anomalias."),
                 new("Directriz 3", columnasNulasFrecuentes.Count > 0 ? "Requiere correccion" : nulosFrecuentesCorregidos ? "Corregida automaticamente" : "Cumple", columnasNulasFrecuentes.Count > 0 ? "Los atributos con nulos frecuentes necesitan una relacion opcional especifica." : nulosFrecuentesCorregidos ? "Los atributos con nulos frecuentes se separaron en relaciones opcionales." : "No se detectaron atributos con nulos frecuentes."),
                 new("Directriz 4", ReferenciasForaneasVerificables(resultado.TablasTerceraFormaNormal, tablasFinales) ? "Cumple" : "Requiere correccion", "Las uniones propuestas se verifican mediante claves primarias y foraneas compatibles.")
             ],

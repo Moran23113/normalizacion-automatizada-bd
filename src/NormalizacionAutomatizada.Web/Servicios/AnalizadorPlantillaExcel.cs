@@ -58,28 +58,31 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
         {
             var hojaTabla = hojasTablas[numero];
             var hojaDatos = hojasDatos[numero];
-            var columnasEstructura = ValidarEstructura(hojaTabla, errores);
+            var estructuraTabla = ValidarEstructura(hojaTabla, errores);
 
-            if (columnasEstructura is null)
+            if (estructuraTabla is null)
             {
                 continue;
             }
 
             var encabezadosDatos = LeerEncabezados(hojaDatos);
-            if (!columnasEstructura.Select(columna => columna.Nombre).SequenceEqual(encabezadosDatos, StringComparer.Ordinal))
+            if (!estructuraTabla.Columnas.Select(columna => columna.Nombre).SequenceEqual(encabezadosDatos, StringComparer.Ordinal))
             {
                 errores.Add($"Las columnas de 'Datos_{numero}' deben coincidir, en el mismo orden, con las de 'Tabla_{numero}'.");
                 continue;
             }
 
-            var registros = LeerRegistros(hojaDatos, columnasEstructura);
+            var registros = LeerRegistros(hojaDatos, estructuraTabla.Columnas);
             if (registros.Count == 0)
             {
                 errores.Add($"La hoja 'Datos_{numero}' debe contener al menos un registro para analizar.");
                 continue;
             }
 
-            var tablaImportada = new TablaNormalizacion(numero, columnasEstructura, registros);
+            var tablaImportada = new TablaNormalizacion(numero, estructuraTabla.Columnas, registros)
+            {
+                Nombre = estructuraTabla.Nombre
+            };
             var erroresClavePrimaria = new ValidadorClavesDeclaradas().Validar(tablaImportada);
             if (erroresClavePrimaria.Count > 0)
             {
@@ -87,8 +90,18 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
                 continue;
             }
 
-            resumenes.Add(new(numero, columnasEstructura.Count, registros.Count));
+            resumenes.Add(new(numero, estructuraTabla.Columnas.Count, registros.Count));
             tablasImportadas.Add(tablaImportada);
+        }
+
+        var nombresDuplicados = tablasImportadas
+            .GroupBy(tabla => tabla.NombreBase, StringComparer.OrdinalIgnoreCase)
+            .Where(grupo => grupo.Count() > 1)
+            .Select(grupo => grupo.Key)
+            .ToArray();
+        if (nombresDuplicados.Length > 0)
+        {
+            errores.Add($"Los nombres de tabla no pueden repetirse: {string.Join(", ", nombresDuplicados)}.");
         }
 
         return new(resumenes, errores)
@@ -121,7 +134,7 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
         }
     }
 
-    private static IReadOnlyList<ColumnaNormalizacion>? ValidarEstructura(IXLWorksheet hoja, ICollection<string> errores)
+    private static EstructuraTabla? ValidarEstructura(IXLWorksheet hoja, ICollection<string> errores)
     {
         var numero = hoja.Name["Tabla_".Length..];
         var encabezados = LeerEncabezados(hoja);
@@ -133,6 +146,7 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
         }
 
         var columnas = new List<ColumnaNormalizacion>();
+        var nombreTabla = string.Empty;
         var ultimaFila = hoja.LastRowUsed()?.RowNumber() ?? 1;
 
         for (var fila = 2; fila <= ultimaFila; fila++)
@@ -144,9 +158,20 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
                 continue;
             }
 
-            if (!string.Equals(valores[0], "Tabla", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(valores[1]) || string.IsNullOrWhiteSpace(valores[2]) || !EsValorBooleano(valores[3]) || !EsValorBooleano(valores[4]))
+            if (string.IsNullOrWhiteSpace(valores[0]) || string.IsNullOrWhiteSpace(valores[1]) || string.IsNullOrWhiteSpace(valores[2]) || !EsValorBooleano(valores[3]) || !EsValorBooleano(valores[4]))
             {
-                errores.Add($"Cada fila usada de 'Tabla_{numero}' debe indicar Tabla, columna, tipo y valores Si o No para Primary Key y Foreign Key.");
+                errores.Add($"Cada fila usada de 'Tabla_{numero}' debe indicar nombre de tabla, columna, tipo y valores Si o No para Primary Key y Foreign Key.");
+                return null;
+            }
+
+            var nombreFila = string.Equals(valores[0], "Tabla", StringComparison.Ordinal) ? $"Tabla_{numero}" : valores[0];
+            if (string.IsNullOrEmpty(nombreTabla))
+            {
+                nombreTabla = nombreFila;
+            }
+            else if (!string.Equals(nombreTabla, nombreFila, StringComparison.OrdinalIgnoreCase))
+            {
+                errores.Add($"Cada fila usada de 'Tabla_{numero}' debe usar el mismo nombre de tabla.");
                 return null;
             }
 
@@ -165,7 +190,7 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
             return null;
         }
 
-        return columnas;
+        return new(nombreTabla, columnas);
     }
 
     private static bool EsValorBooleano(string valor)
@@ -216,4 +241,6 @@ public sealed class AnalizadorPlantillaExcel : IAnalizadorPlantillaExcel
             ? null
             : valor;
     }
+
+    private sealed record EstructuraTabla(string Nombre, IReadOnlyList<ColumnaNormalizacion> Columnas);
 }

@@ -211,7 +211,7 @@ public class PruebasAnalizadorPlantillaExcel
         var result = analyzer.Analizar(workbook);
 
         Assert.False(result.EsValido);
-        Assert.Contains("Cada fila usada de 'Tabla_01' debe indicar Tabla, columna, tipo y valores Si o No para Primary Key y Foreign Key.", result.Errores);
+        Assert.Contains("Cada fila usada de 'Tabla_01' debe indicar nombre de tabla, columna, tipo y valores Si o No para Primary Key y Foreign Key.", result.Errores);
     }
 
     [Fact]
@@ -248,19 +248,72 @@ public class PruebasAnalizadorPlantillaExcel
     }
 
     [Fact]
-    public void Analyze_WhenStructureUsesATableNameInsteadOfTabla_ReportsTheRequiredLiteral()
+    public void Analyze_WhenStructureUsesDescriptiveNames_UsesThemForNormalizedTables()
     {
         using var workbook = CreateWorkbook(
             Sheet("Tabla_01", ["tabla", "columna", "tipo", "Primary Key", "Foreign Key"],
-                ["Matricula", "id_estudiante", "INT", "No", "No"]),
+                ["Estudiante", "id_estudiante", "INT", "Si", "No"],
+                ["Estudiante", "id_carrera", "INT", "No", "Si"],
+                ["Estudiante", "nombre_carrera", "VARCHAR(100)", "No", "No"]),
+            Sheet("Datos_01", ["id_estudiante", "id_carrera", "nombre_carrera"],
+                ["1", "10", "Ingenieria"],
+                ["2", "20", "Derecho"]),
+            Sheet("Tabla_02", ["tabla", "columna", "tipo", "Primary Key", "Foreign Key"],
+                ["Carrera", "id_carrera", "INT", "Si", "No"],
+                ["Carrera", "nombre_carrera", "VARCHAR(100)", "No", "No"]),
+            Sheet("Datos_02", ["id_carrera", "nombre_carrera"],
+                ["10", "Ingenieria"],
+                ["20", "Derecho"]));
+        var analyzer = new AnalizadorPlantillaExcel();
+
+        var result = analyzer.Analizar(workbook);
+        Assert.True(result.EsValido);
+        var input = Assert.IsType<EntradaNormalizacion>(result.Entrada);
+        var normalizador = new NormalizadorTerceraFormaNormal();
+        var resultadoEstudiante = normalizador.Normalizar(input.Tablas.Single(tabla => tabla.Numero == "01"), input.Tablas);
+        var resultadoCarrera = normalizador.Normalizar(input.Tablas.Single(tabla => tabla.Numero == "02"), input.Tablas);
+
+        var tablaEstudiante = Assert.Single(resultadoEstudiante.TablasTerceraFormaNormal);
+        Assert.Equal("Estudiante_01", tablaEstudiante.Nombre);
+        Assert.Contains(tablaEstudiante.ClavesForaneas, referencia => referencia.TablaDestino == "Carrera_01");
+        Assert.Equal("Carrera_01", Assert.Single(resultadoCarrera.TablasTerceraFormaNormal).Nombre);
+    }
+
+    [Fact]
+    public void Analyze_WhenStructureUsesDifferentDescriptiveNames_ReportsTheInvalidName()
+    {
+        using var workbook = CreateWorkbook(
+            Sheet("Tabla_01", ["tabla", "columna", "tipo", "Primary Key", "Foreign Key"],
+                ["Estudiante", "id_estudiante", "INT", "Si", "No"],
+                ["Persona", "nombre_estudiante", "VARCHAR(100)", "No", "No"]),
+            Sheet("Datos_01", ["id_estudiante", "nombre_estudiante"],
+                ["1", "Ana"]));
+        var analyzer = new AnalizadorPlantillaExcel();
+
+        var result = analyzer.Analizar(workbook);
+
+        Assert.False(result.EsValido);
+        Assert.Contains("Cada fila usada de 'Tabla_01' debe usar el mismo nombre de tabla.", result.Errores);
+    }
+
+    [Fact]
+    public void Analyze_WhenDescriptiveNameIsRepeatedAcrossSheets_ReportsTheDuplicate()
+    {
+        using var workbook = CreateWorkbook(
+            Sheet("Tabla_01", ["tabla", "columna", "tipo", "Primary Key", "Foreign Key"],
+                ["Estudiante", "id_estudiante", "INT", "Si", "No"]),
             Sheet("Datos_01", ["id_estudiante"],
+                ["1"]),
+            Sheet("Tabla_02", ["tabla", "columna", "tipo", "Primary Key", "Foreign Key"],
+                ["Estudiante", "id_docente", "INT", "Si", "No"]),
+            Sheet("Datos_02", ["id_docente"],
                 ["1"]));
         var analyzer = new AnalizadorPlantillaExcel();
 
         var result = analyzer.Analizar(workbook);
 
         Assert.False(result.EsValido);
-        Assert.Contains("Cada fila usada de 'Tabla_01' debe indicar Tabla, columna, tipo y valores Si o No para Primary Key y Foreign Key.", result.Errores);
+        Assert.Contains("Los nombres de tabla no pueden repetirse: Estudiante.", result.Errores);
     }
 
     [Fact]

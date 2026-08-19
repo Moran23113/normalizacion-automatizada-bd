@@ -22,7 +22,7 @@ public sealed class NormalizadorTerceraFormaNormal
         if (clavePrincipal.Count == 0)
         {
             advertencias.Add($"No se pudo inferir una clave candidata para Tabla_{tabla.Numero}; se conserva la tabla sin descomponer.");
-            var tablaBaseSinDescomponer = CrearTabla($"Tabla_{tabla.Numero}_01", tabla.Columnas, clavePrincipal);
+            var tablaBaseSinDescomponer = CrearTabla(CrearNombreTabla(tabla, 1), tabla.Columnas, clavePrincipal);
             return new(tabla.Numero, clavesCandidatas, dependencias, [tablaBaseSinDescomponer], [tablaBaseSinDescomponer], [tablaBaseSinDescomponer], advertencias);
         }
 
@@ -41,7 +41,7 @@ public sealed class NormalizadorTerceraFormaNormal
 
         var tablasBaseTerceraFormaNormal = tablaSinGruposRepetidos.Columnas.Any(columna => columna.EsClaveForanea)
             ? SepararRelacionesDeclaradas(tablaSinGruposRepetidos, clavePrincipal, tablasPrimeraFormaNormal.Count + 1, tablasEntrada)
-            : [CrearTabla($"Tabla_{tabla.Numero}_01", tablaSinGruposRepetidos.Columnas, clavePrincipal)];
+            : [CrearTabla(CrearNombreTabla(tabla, 1), tablaSinGruposRepetidos.Columnas, clavePrincipal)];
         var tablasInicialesTerceraFormaNormal = tablasBaseTerceraFormaNormal.Concat(tablasGruposRepetidos).OrderBy(tabla => tabla.Nombre, StringComparer.Ordinal).ToArray();
         var tablasTerceraFormaNormal = CrearTablasTerceraFormaNormal(tabla, tablasInicialesTerceraFormaNormal, dependencias);
 
@@ -66,6 +66,11 @@ public sealed class NormalizadorTerceraFormaNormal
         return new(nombre, columnas, clavePrimaria, []);
     }
 
+    private static string CrearNombreTabla(TablaNormalizacion tabla, int numero)
+    {
+        return $"{tabla.NombreBase}_{numero:00}";
+    }
+
     private static IReadOnlyList<TablaNormalizada> CrearTablasPrimeraFormaNormal(
         TablaNormalizacion tabla,
         TablaNormalizacion tablaSinGruposRepetidos,
@@ -73,7 +78,7 @@ public sealed class NormalizadorTerceraFormaNormal
         IReadOnlyList<string> columnasGruposRepetidos,
         IReadOnlyList<string> columnasNulasFrecuentes)
     {
-        var tablaBase = CrearTabla($"Tabla_{tabla.Numero}_01", tablaSinGruposRepetidos.Columnas, clavePrincipal);
+        var tablaBase = CrearTabla(CrearNombreTabla(tabla, 1), tablaSinGruposRepetidos.Columnas, clavePrincipal);
         var tablas = new List<TablaNormalizada> { tablaBase };
 
         foreach (var nombreColumna in columnasGruposRepetidos)
@@ -84,7 +89,7 @@ public sealed class NormalizadorTerceraFormaNormal
                 .Select(columna => columna with { EsClavePrimaria = true, EsClaveForanea = true })
                 .ToArray();
             var columnaAtomica = columna with { EsClavePrimaria = true, EsClaveForanea = false };
-            var nombreTabla = $"Tabla_{tabla.Numero}_{tablas.Count + 1:00}";
+            var nombreTabla = CrearNombreTabla(tabla, tablas.Count + 1);
 
             tablas.Add(new(
                 nombreTabla,
@@ -100,7 +105,7 @@ public sealed class NormalizadorTerceraFormaNormal
                 .Where(columna => clavePrincipal.Contains(columna.Nombre, StringComparer.Ordinal))
                 .Select(columna => columna with { EsClavePrimaria = true, EsClaveForanea = true })
                 .ToArray();
-            var nombreTabla = $"Tabla_{tabla.Numero}_{tablas.Count + 1:00}";
+            var nombreTabla = CrearNombreTabla(tabla, tablas.Count + 1);
 
             tablas.Add(new(
                 nombreTabla,
@@ -144,13 +149,13 @@ public sealed class NormalizadorTerceraFormaNormal
 
             var nombresColumnas = determinante.Concat(dependientes).ToHashSet(StringComparer.Ordinal);
             var columnasRelacionadas = tabla.Columnas.Where(columna => nombresColumnas.Contains(columna.Nombre)).ToArray();
-            var nombreTablaRelacionada = $"Tabla_{tabla.Numero}_{siguienteNumeroTabla++:00}";
+            var nombreTablaRelacionada = CrearNombreTabla(tabla, siguienteNumeroTabla++);
             tablas.Add(CrearTabla(nombreTablaRelacionada, columnasRelacionadas, determinante));
             referenciasBase.Add(new(determinante, nombreTablaRelacionada, determinante));
             columnasBase.RemoveAll(columna => dependientes.Contains(columna.Nombre, StringComparer.Ordinal));
         }
 
-        tablas[0] = CrearTabla($"Tabla_{tabla.Numero}_01", columnasBase, clavePrincipal) with { ClavesForaneas = tablas[0].ClavesForaneas.Concat(referenciasBase).ToArray() };
+        tablas[0] = CrearTabla(CrearNombreTabla(tabla, 1), columnasBase, clavePrincipal) with { ClavesForaneas = tablas[0].ClavesForaneas.Concat(referenciasBase).ToArray() };
         return AgregarReferenciasForaneas(tablas);
     }
 
@@ -202,7 +207,7 @@ public sealed class NormalizadorTerceraFormaNormal
 
             var nombresColumnas = determinante.Concat(dependientes).ToHashSet(StringComparer.Ordinal);
             var columnasRelacionadas = tablaOrigen.Columnas.Where(columna => nombresColumnas.Contains(columna.Nombre)).ToArray();
-            var nombreTablaRelacionada = $"Tabla_{tablaOrigen.Numero}_{siguienteNumeroTabla++:00}";
+            var nombreTablaRelacionada = CrearNombreTabla(tablaOrigen, siguienteNumeroTabla++);
             tablasRelacionadas.Add(CrearTabla(nombreTablaRelacionada, columnasRelacionadas, determinante));
             referenciasBase.Add(new(determinante, nombreTablaRelacionada, determinante));
             columnasBase.RemoveAll(columna => dependientes.Contains(columna.Nombre, StringComparer.Ordinal));
@@ -310,20 +315,20 @@ public sealed class NormalizadorTerceraFormaNormal
             var tablaExterna = BuscarTablaExterna(tabla, tablasEntrada, claveForanea, dependientes);
             if (tablaExterna is not null)
             {
-                referenciasBase.Add(new([claveForanea.Nombre], $"Tabla_{tablaExterna.Numero}_01", [claveForanea.Nombre]));
+                referenciasBase.Add(new([claveForanea.Nombre], CrearNombreTabla(tablaExterna, 1), [claveForanea.Nombre]));
                 columnasBase.RemoveAll(columna => dependientes.Contains(columna));
                 continue;
             }
 
             var clavePrincipalRelacionada = claveForanea with { EsClavePrimaria = true, EsClaveForanea = false };
             var columnasRelacionadas = new[] { clavePrincipalRelacionada }.Concat(dependientes).ToArray();
-            var nombreTablaRelacionada = $"Tabla_{tabla.Numero}_{siguienteNumeroTabla++:00}";
+            var nombreTablaRelacionada = CrearNombreTabla(tabla, siguienteNumeroTabla++);
             tablasRelacionadas.Add(CrearTabla(nombreTablaRelacionada, columnasRelacionadas, [claveForanea.Nombre]));
             referenciasBase.Add(new([claveForanea.Nombre], nombreTablaRelacionada, [claveForanea.Nombre]));
             columnasBase.RemoveAll(columna => dependientes.Contains(columna));
         }
 
-        tablasRelacionadas.Insert(0, CrearTabla($"Tabla_{tabla.Numero}_01", columnasBase, clavePrincipal) with { ClavesForaneas = referenciasBase });
+        tablasRelacionadas.Insert(0, CrearTabla(CrearNombreTabla(tabla, 1), columnasBase, clavePrincipal) with { ClavesForaneas = referenciasBase });
         return tablasRelacionadas;
     }
 
